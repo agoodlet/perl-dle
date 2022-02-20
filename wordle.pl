@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 
-our @wordList = ('roate', 'press', 'terse');
 our $tries = 6; 
 our $win = 0;
 
@@ -12,39 +11,35 @@ print "Enter 5 letter word:\n";
 
 my $filePath = 'wordle-answers-alphabetical.txt';
 
-my $count = 0;
+my @wordList;
+my $target;
+
+# my $testArg = $ARGV[0];
 
 open my $file, '<', $filePath or die "$!";
 while(<$file>){
-    $count++;
+    chomp $_;
+    push(@wordList, $_);
 }
 
+my $count = scalar(@wordList);
 my $lineWanted = int(rand($count));
 
-print "count: $count\n";
-print "line wanted: $lineWanted\n";
-
-open my $fh, '<', $filePath or die "$filePath: $!";
-my $target;
-while( <$fh> ) {
-    if( $. == $lineWanted ) { 
-        $target = $_;
-        last;
+for (my $i = 0; $i < $count; $i++){
+    if ($i == $lineWanted){
+	$target = $wordList[$i];
     }
 }
 
+# if ($testArg = 1){
 print "$target\n";
+# }
 
 sub takeInput{
+print "Guess: \n";
 my $input = <>;
-chomp $input; 
-
-if (grep $input $filePath){
+chomp $input;
 parseInput($input);
-}else{
-    print "Word is invalid"
-    takeInput();
-}
 }
 
 sub parseInput{
@@ -56,39 +51,44 @@ sub parseInput{
     if ( $len != 5 ){
         print "Please enter a 5 letter word\n";
         takeInput();
+        exit;
+    }elsif(!grep( /^$input$/, @wordList)){
+	    print "Word not in word list\n";
+	    takeInput();
+	    exit;
+        }
+    
+    for (my $i = 0; $i < $len; $i++){
+        my $targetChar = substr($target, $i, 1);    
+        my $inputChar = substr($input, $i, 1);
+        $positions[$i] = 0;
+
+        if (index($target, $inputChar) >= 0){
+            $positions[$i]++;
+        }
+        if ($inputChar eq $targetChar){
+            $positions[$i]++;
+        }
+    }
+
+    print "@positions\n";
+
+    my $total = 0;
+    foreach (@positions){
+        $total += $_;
+    }
+    if ($total >= scalar(@positions) * 2){
+        print "Congrats, you guess the word\n";
+        $win = 1; 
     }else{
-            for (my $i = 0; $i < $len; $i++){
-                my $targetChar = substr($target, $i, 1);    
-                my $inputChar = substr($input, $i, 1);
-                $positions[$i] = 0;
-
-                if (index($target, $inputChar) >= 0){
-                    $positions[$i]++;
-                }
-                if ($inputChar eq $targetChar){
-                    $positions[$i]++;
-                }
-            }
-
-            print "@positions\n";
-
-            my $total = 0;
-            foreach (@positions){
-                $total += $_;
-            }
-            if ($total >= scalar(@positions) * 2){
-                print "Congrats, you guess the word\n";
-                $win = 1; 
-            }else{
-                $tries--;
-            }
-    };
+        $tries--;
+    }
 }
 
 while ($tries > 0 and $win != 1){
 takeInput();
 
 if ($tries == 0){
-    print "Out of guesses! The word was $target! Better luck next time!";
+    print "Out of guesses! The word was $target! Better luck next time!\n";
 }
 }
